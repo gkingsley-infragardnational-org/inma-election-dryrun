@@ -1,4 +1,4 @@
-import { ELECTION } from "../_shared/election.js";
+import { getSettings, listCandidates } from "../_shared/store.js";
 import { sha256Hex, json } from "../_shared/crypto.js";
 
 const MAX_ATTEMPTS = 10;
@@ -16,10 +16,11 @@ export async function onRequestPost(context) {
 
   const { voterId, pin } = body || {};
   if (!voterId || !pin) {
-    return json({ error: "voterId and pin are required." }, 400);
+    return json({ error: "Voter ID (email) and PIN are required." }, 400);
   }
 
-  const voterKey = `voter:${voterId}`;
+  const normalizedId = voterId.trim().toLowerCase();
+  const voterKey = `voter:${normalizedId}`;
   const raw = await env.VOTES.get(voterKey);
   if (!raw) {
     return json({ error: "Voter ID not recognized." }, 401);
@@ -63,15 +64,24 @@ export async function onRequestPost(context) {
   const token = crypto.randomUUID();
   await env.VOTES.put(
     `session:${token}`,
-    JSON.stringify({ voterId, createdAt: Date.now() }),
+    JSON.stringify({ voterId: normalizedId, createdAt: Date.now() }),
     { expirationTtl: SESSION_TTL_SECONDS }
   );
 
+  const settings = await getSettings(env);
+  const candidates = await listCandidates(env);
+
   return json({
     token,
-    electionId: ELECTION.electionId,
-    electionName: ELECTION.name,
-    candidates: ELECTION.candidates,
-    maxSelections: ELECTION.maxSelections,
+    electionId: settings.electionId,
+    electionName: settings.name,
+    maxSelections: settings.maxSelections,
+    candidates: candidates.map((c) => ({
+      id: c.id,
+      name: c.name,
+      ima: c.ima,
+      bio: c.bio,
+      photo: c.photo,
+    })),
   });
 }
