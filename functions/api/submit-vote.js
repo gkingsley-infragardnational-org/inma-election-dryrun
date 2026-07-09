@@ -1,4 +1,4 @@
-import { ELECTION } from "../_shared/election.js";
+import { getSettings, listCandidates } from "../_shared/store.js";
 import { json } from "../_shared/crypto.js";
 
 export async function onRequestPost(context) {
@@ -34,28 +34,30 @@ export async function onRequestPost(context) {
     return json({ error: "A ballot has already been recorded for this voter." }, 403);
   }
 
-  const validIds = new Set(ELECTION.candidates.map((c) => c.id));
+  const settings = await getSettings(env);
+  const candidates = await listCandidates(env);
+  const validIds = new Set(candidates.map((c) => c.id));
   const uniqueSelections = new Set(selections);
+
   if (
     selections.length === 0 ||
-    selections.length > ELECTION.maxSelections ||
+    selections.length > settings.maxSelections ||
     uniqueSelections.size !== selections.length ||
     !selections.every((id) => validIds.has(id))
   ) {
     return json(
-      { error: `Select between 1 and ${ELECTION.maxSelections} valid, non-duplicate candidate(s).` },
+      { error: `Select between 1 and ${settings.maxSelections} valid, non-duplicate candidate(s).` },
       400
     );
   }
 
-  // Secret-ballot design: the ballot record contains no voterId, and the
-  // voter record (updated below) contains no selections. The two are never
-  // linkable from stored data alone.
+  // Secret-ballot design unchanged: the ballot record contains no voterId,
+  // and the voter record contains no selections.
   const ballotId = crypto.randomUUID();
   await env.VOTES.put(
     `ballot:${ballotId}`,
     JSON.stringify({
-      electionId: ELECTION.electionId,
+      electionId: settings.electionId,
       selections,
       castAt: new Date().toISOString(),
     })
