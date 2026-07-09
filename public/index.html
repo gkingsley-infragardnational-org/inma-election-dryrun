@@ -3,57 +3,384 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>InfraGard Election — Dry Run</title>
+<title>InfraGard National Members Alliance — Election Ballot</title>
 <style>
-  body { font-family: -apple-system, Segoe UI, Arial, sans-serif; max-width: 560px; margin: 40px auto; padding: 0 16px; color: #1a1a1a; }
-  h1 { font-size: 1.3rem; }
-  .banner { background: #fff3cd; border: 1px solid #ffe69c; padding: 10px 14px; border-radius: 6px; margin-bottom: 20px; font-size: 0.9rem; }
-  label { display: block; margin: 12px 0 4px; font-weight: 600; font-size: 0.9rem; }
-  input[type=text], input[type=password] { width: 100%; padding: 8px; box-sizing: border-box; font-size: 1rem; }
-  button { margin-top: 16px; padding: 10px 16px; font-size: 1rem; cursor: pointer; }
-  .candidate { border: 1px solid #ddd; border-radius: 6px; padding: 10px 12px; margin: 8px 0; display: flex; align-items: center; gap: 10px; }
-  .msg { margin-top: 14px; padding: 10px 12px; border-radius: 6px; font-size: 0.9rem; }
-  .msg.error { background: #fdecea; border: 1px solid #f5c2c0; color: #7a1c17; }
-  .msg.ok { background: #e6f4ea; border: 1px solid #b7dfc0; color: #1e4620; }
+  :root {
+    --navy: #0b1f3a;
+    --navy-alt: #13294e;
+    --navy-card: #16305a;
+    --gold: #f2c94c;
+    --gold-bright: #ffd700;
+    --white: #ffffff;
+    --gray-light: #d7dee8;
+    --border: #2c4874;
+    --focus: #7fbfff;
+    --error-bg: #ffffff;
+    --error-text: #7a1c17;
+    --error-border: #c0392b;
+    --ok-bg: #ffffff;
+    --ok-text: #14532d;
+    --ok-border: #2e7d32;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    font-family: -apple-system, "Segoe UI", Arial, sans-serif;
+    background: var(--navy);
+    color: var(--white);
+    line-height: 1.5;
+  }
+
+  a { color: var(--gold-bright); }
+
+  .wrap {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 24px 16px 64px;
+  }
+
+  header.site-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    flex-wrap: wrap;
+    padding: 20px 12px;
+    border-bottom: 3px solid var(--gold);
+    margin-bottom: 28px;
+    text-align: center;
+  }
+
+  header.site-header img {
+    height: 84px;
+    width: auto;
+    flex-shrink: 0;
+  }
+
+  header.site-header .title-block h1 {
+    margin: 0 0 4px;
+    color: var(--gold-bright);
+    font-size: 1.5rem;
+    letter-spacing: 0.02em;
+  }
+
+  header.site-header .title-block p {
+    margin: 0;
+    color: var(--gray-light);
+    font-size: 0.95rem;
+  }
+
+  .banner {
+    background: var(--navy-card);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--gold);
+    padding: 12px 16px;
+    border-radius: 6px;
+    margin-bottom: 24px;
+    font-size: 0.9rem;
+    color: var(--gray-light);
+  }
+
+  h2 {
+    color: var(--gold-bright);
+    font-size: 1.2rem;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 8px;
+  }
+
+  .table-scroll {
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 32px;
+  }
+
+  .table-scroll:focus-visible {
+    outline: 3px solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  table.compare {
+    border-collapse: collapse;
+    width: 100%;
+    min-width: 560px;
+  }
+
+  table.compare caption {
+    caption-side: top;
+    text-align: left;
+    color: var(--gray-light);
+    font-size: 0.85rem;
+    padding: 10px 12px;
+  }
+
+  table.compare th,
+  table.compare td {
+    border: 1px solid var(--border);
+    padding: 12px 14px;
+    vertical-align: top;
+    text-align: left;
+  }
+
+  table.compare thead th {
+    background: var(--navy-alt);
+    color: var(--gold-bright);
+    font-size: 1.05rem;
+    position: sticky;
+    top: 0;
+  }
+
+  table.compare tbody th[scope="row"] {
+    background: var(--navy-alt);
+    color: var(--gold);
+    white-space: nowrap;
+    width: 1%;
+  }
+
+  table.compare td {
+    background: var(--navy-card);
+    color: var(--white);
+    min-width: 180px;
+  }
+
+  table.compare img.candidate-photo {
+    width: 96px;
+    height: 96px;
+    object-fit: cover;
+    border-radius: 6px;
+    border: 2px solid var(--gold);
+    background: var(--navy-alt);
+  }
+
+  .candidate-name-cell {
+    font-weight: 700;
+    color: var(--gold-bright);
+    font-size: 1.05rem;
+  }
+
+  fieldset {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    margin: 0 0 24px;
+  }
+
+  legend {
+    color: var(--gold-bright);
+    font-weight: 600;
+    padding: 0 8px;
+  }
+
+  label {
+    display: block;
+    margin: 12px 0 4px;
+    font-weight: 600;
+    color: var(--gray-light);
+  }
+
+  input[type="text"],
+  input[type="password"],
+  input[type="email"] {
+    width: 100%;
+    max-width: 360px;
+    padding: 10px;
+    font-size: 1rem;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--white);
+    color: #101010;
+  }
+
+  input:focus-visible,
+  button:focus-visible,
+  a:focus-visible {
+    outline: 3px solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  button {
+    margin-top: 16px;
+    padding: 12px 20px;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    background: var(--gold);
+    color: var(--navy);
+    border: none;
+    border-radius: 6px;
+  }
+
+  button:hover { background: var(--gold-bright); }
+
+  .select-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin: 12px 0 4px;
+  }
+
+  .select-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--navy-card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 14px;
+  }
+
+  .select-option input {
+    width: 20px;
+    height: 20px;
+  }
+
+  .msg {
+    margin-top: 14px;
+    padding: 12px 14px;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    font-weight: 600;
+  }
+
+  .msg.error {
+    background: var(--error-bg);
+    color: var(--error-text);
+    border: 2px solid var(--error-border);
+  }
+
+  .msg.ok {
+    background: var(--ok-bg);
+    color: var(--ok-text);
+    border: 2px solid var(--ok-border);
+  }
+
   #step-ballot, #step-done { display: none; }
+
+  footer {
+    text-align: center;
+    color: var(--gray-light);
+    font-size: 0.8rem;
+    margin-top: 40px;
+  }
+
+  @media (max-width: 600px) {
+    header.site-header img { height: 56px; }
+    header.site-header .title-block h1 { font-size: 1.2rem; }
+  }
 </style>
 </head>
 <body>
-  <h1 id="election-title">InfraGard Election System</h1>
-  <div class="banner">Synthetic test environment — no real votes, voter identities, or governance decisions are recorded here.</div>
+<div class="wrap">
+
+  <header class="site-header">
+    <img src="/inma-seal.png" alt="InfraGard National Members Alliance official seal" />
+    <div class="title-block">
+      <h1 id="election-title">INMA Election</h1>
+      <p id="election-subtitle">Official ballot — InfraGard National Members Alliance</p>
+    </div>
+    <img src="/inma-30th-logo.png" alt="Celebrating 30 years of protecting our nation" />
+  </header>
+
+  <div class="banner">
+    This is a live ballot. Review each candidate below, then scroll down to enter your voter ID and PIN to cast your vote.
+  </div>
+
+  <h2>Candidates</h2>
+  <div class="table-scroll" tabindex="0" role="region" aria-label="Candidate comparison table">
+    <table class="compare" id="compare-table">
+      <caption>Use Tab or swipe to scroll horizontally if the table is wider than your screen.</caption>
+      <thead><tr id="compare-head"></tr></thead>
+      <tbody id="compare-body"></tbody>
+    </table>
+  </div>
+
+  <div id="msg-area" aria-live="polite"></div>
 
   <div id="step-login">
-    <label for="voterId">Voter ID</label>
-    <input type="text" id="voterId" autocomplete="off" placeholder="e.g. voter-001" />
-    <label for="pin">PIN</label>
-    <input type="password" id="pin" autocomplete="off" />
-    <button id="btn-login">Continue</button>
+    <fieldset>
+      <legend>Cast Your Ballot</legend>
+      <label for="voterId">Voter ID (email address)</label>
+      <input type="email" id="voterId" autocomplete="username" />
+      <label for="pin">PIN</label>
+      <input type="password" id="pin" autocomplete="current-password" inputmode="numeric" />
+      <div>
+        <button id="btn-login">Continue</button>
+      </div>
+    </fieldset>
   </div>
 
   <div id="step-ballot">
-    <p>Select up to <strong id="max-select"></strong> candidate(s):</p>
-    <div id="candidates"></div>
-    <button id="btn-submit">Cast Ballot</button>
+    <fieldset>
+      <legend>Select your candidate(s) — up to <span id="max-select"></span></legend>
+      <div class="select-row" id="select-row" role="group" aria-label="Candidate selection"></div>
+      <div>
+        <button id="btn-submit">Cast Ballot</button>
+      </div>
+    </fieldset>
   </div>
 
   <div id="step-done">
-    <div class="msg ok" id="done-msg"></div>
+    <div class="msg ok" id="done-msg" role="status"></div>
   </div>
 
-  <div id="msg-area"></div>
+  <footer>InfraGard National Members Alliance — Nominations &amp; Elections</footer>
+</div>
 
 <script>
-  let state = { token: null, maxSelections: 1 };
+  let state = { token: null, maxSelections: 1, candidates: [] };
+
+  function escapeHtml(s) {
+    return String(s || "").replace(/[&<>"']/g, (c) => (
+      { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]
+    ));
+  }
 
   function showMsg(text, type) {
     const el = document.getElementById('msg-area');
-    el.innerHTML = `<div class="msg ${type}">${text}</div>`;
+    el.innerHTML = text ? `<div class="msg ${type}">${escapeHtml(text)}</div>` : '';
+  }
+
+  function renderCandidateTable(candidates) {
+    const head = document.getElementById('compare-head');
+    const body = document.getElementById('compare-body');
+    head.innerHTML = '<th scope="col">&nbsp;</th>' +
+      candidates.map(c => `<th scope="col" class="candidate-name-cell">${escapeHtml(c.name)}</th>`).join('');
+
+    const rows = [
+      { label: 'Photo', render: (c) => c.photo
+          ? `<img class="candidate-photo" src="${c.photo}" alt="Photo of ${escapeHtml(c.name)}" />`
+          : `<span style="color:var(--gray-light)">No photo provided</span>` },
+      { label: 'Name', render: (c) => `<span class="candidate-name-cell">${escapeHtml(c.name)}</span>` },
+      { label: 'IMA / Chapter', render: (c) => escapeHtml(c.ima) || '—' },
+      { label: 'Bio', render: (c) => escapeHtml(c.bio) || '—' },
+    ];
+
+    body.innerHTML = rows.map(row => `
+      <tr>
+        <th scope="row">${row.label}</th>
+        ${candidates.map(c => `<td>${row.render(c)}</td>`).join('')}
+      </tr>
+    `).join('');
+  }
+
+  async function loadCandidates() {
+    try {
+      const res = await fetch('/api/candidates');
+      const data = await res.json();
+      state.candidates = data.candidates || [];
+      document.getElementById('election-title').textContent = data.settings?.name || 'INMA Election';
+      renderCandidateTable(state.candidates);
+    } catch (e) {
+      showMsg('Unable to load candidate information right now.', 'error');
+    }
   }
 
   document.getElementById('btn-login').addEventListener('click', async () => {
     const voterId = document.getElementById('voterId').value.trim();
     const pin = document.getElementById('pin').value.trim();
-    if (!voterId || !pin) { showMsg('Enter a voter ID and PIN.', 'error'); return; }
+    if (!voterId || !pin) { showMsg('Enter your voter ID (email) and PIN.', 'error'); return; }
 
     try {
       const res = await fetch('/api/verify-pin', {
@@ -66,21 +393,22 @@
 
       state.token = data.token;
       state.maxSelections = data.maxSelections;
-      document.getElementById('election-title').textContent = data.electionName;
+      state.candidates = data.candidates || state.candidates;
+      document.getElementById('election-title').textContent = data.electionName || 'INMA Election';
       document.getElementById('max-select').textContent = data.maxSelections;
+      renderCandidateTable(state.candidates);
 
-      const container = document.getElementById('candidates');
-      container.innerHTML = '';
-      data.candidates.forEach((c) => {
-        const div = document.createElement('div');
-        div.className = 'candidate';
-        div.innerHTML = `<input type="checkbox" name="cand" value="${c.id}" id="c-${c.id}"><label style="margin:0" for="c-${c.id}">${c.name}</label>`;
-        container.appendChild(div);
-      });
+      const selectRow = document.getElementById('select-row');
+      selectRow.innerHTML = state.candidates.map(c => `
+        <label class="select-option" for="sel-${c.id}">
+          <input type="checkbox" name="cand" value="${c.id}" id="sel-${c.id}" />
+          ${escapeHtml(c.name)}
+        </label>
+      `).join('');
 
       document.getElementById('step-login').style.display = 'none';
       document.getElementById('step-ballot').style.display = 'block';
-      showMsg('', ''); document.getElementById('msg-area').innerHTML = '';
+      showMsg('', '');
     } catch (e) {
       showMsg('Network error contacting the server.', 'error');
     }
@@ -104,11 +432,13 @@
       document.getElementById('step-ballot').style.display = 'none';
       document.getElementById('done-msg').textContent = data.message;
       document.getElementById('step-done').style.display = 'block';
-      document.getElementById('msg-area').innerHTML = '';
+      showMsg('', '');
     } catch (e) {
       showMsg('Network error contacting the server.', 'error');
     }
   });
+
+  loadCandidates();
 </script>
 </body>
 </html>
