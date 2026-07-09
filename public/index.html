@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>InfraGard Election — Dry Run</title>
+<style>
+  body { font-family: -apple-system, Segoe UI, Arial, sans-serif; max-width: 560px; margin: 40px auto; padding: 0 16px; color: #1a1a1a; }
+  h1 { font-size: 1.3rem; }
+  .banner { background: #fff3cd; border: 1px solid #ffe69c; padding: 10px 14px; border-radius: 6px; margin-bottom: 20px; font-size: 0.9rem; }
+  label { display: block; margin: 12px 0 4px; font-weight: 600; font-size: 0.9rem; }
+  input[type=text], input[type=password] { width: 100%; padding: 8px; box-sizing: border-box; font-size: 1rem; }
+  button { margin-top: 16px; padding: 10px 16px; font-size: 1rem; cursor: pointer; }
+  .candidate { border: 1px solid #ddd; border-radius: 6px; padding: 10px 12px; margin: 8px 0; display: flex; align-items: center; gap: 10px; }
+  .msg { margin-top: 14px; padding: 10px 12px; border-radius: 6px; font-size: 0.9rem; }
+  .msg.error { background: #fdecea; border: 1px solid #f5c2c0; color: #7a1c17; }
+  .msg.ok { background: #e6f4ea; border: 1px solid #b7dfc0; color: #1e4620; }
+  #step-ballot, #step-done { display: none; }
+</style>
+</head>
+<body>
+  <h1 id="election-title">InfraGard Election System</h1>
+  <div class="banner">Synthetic test environment — no real votes, voter identities, or governance decisions are recorded here.</div>
+
+  <div id="step-login">
+    <label for="voterId">Voter ID</label>
+    <input type="text" id="voterId" autocomplete="off" placeholder="e.g. voter-001" />
+    <label for="pin">PIN</label>
+    <input type="password" id="pin" autocomplete="off" />
+    <button id="btn-login">Continue</button>
+  </div>
+
+  <div id="step-ballot">
+    <p>Select up to <strong id="max-select"></strong> candidate(s):</p>
+    <div id="candidates"></div>
+    <button id="btn-submit">Cast Ballot</button>
+  </div>
+
+  <div id="step-done">
+    <div class="msg ok" id="done-msg"></div>
+  </div>
+
+  <div id="msg-area"></div>
+
+<script>
+  let state = { token: null, maxSelections: 1 };
+
+  function showMsg(text, type) {
+    const el = document.getElementById('msg-area');
+    el.innerHTML = `<div class="msg ${type}">${text}</div>`;
+  }
+
+  document.getElementById('btn-login').addEventListener('click', async () => {
+    const voterId = document.getElementById('voterId').value.trim();
+    const pin = document.getElementById('pin').value.trim();
+    if (!voterId || !pin) { showMsg('Enter a voter ID and PIN.', 'error'); return; }
+
+    try {
+      const res = await fetch('/api/verify-pin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ voterId, pin }),
+      });
+      const data = await res.json();
+      if (!res.ok) { showMsg(data.error || 'Unable to verify PIN.', 'error'); return; }
+
+      state.token = data.token;
+      state.maxSelections = data.maxSelections;
+      document.getElementById('election-title').textContent = data.electionName;
+      document.getElementById('max-select').textContent = data.maxSelections;
+
+      const container = document.getElementById('candidates');
+      container.innerHTML = '';
+      data.candidates.forEach((c) => {
+        const div = document.createElement('div');
+        div.className = 'candidate';
+        div.innerHTML = `<input type="checkbox" name="cand" value="${c.id}" id="c-${c.id}"><label style="margin:0" for="c-${c.id}">${c.name}</label>`;
+        container.appendChild(div);
+      });
+
+      document.getElementById('step-login').style.display = 'none';
+      document.getElementById('step-ballot').style.display = 'block';
+      showMsg('', ''); document.getElementById('msg-area').innerHTML = '';
+    } catch (e) {
+      showMsg('Network error contacting the server.', 'error');
+    }
+  });
+
+  document.getElementById('btn-submit').addEventListener('click', async () => {
+    const checked = Array.from(document.querySelectorAll('input[name=cand]:checked')).map(i => i.value);
+    if (checked.length === 0 || checked.length > state.maxSelections) {
+      showMsg(`Select between 1 and ${state.maxSelections} candidate(s).`, 'error');
+      return;
+    }
+    try {
+      const res = await fetch('/api/submit-vote', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: state.token, selections: checked }),
+      });
+      const data = await res.json();
+      if (!res.ok) { showMsg(data.error || 'Unable to record ballot.', 'error'); return; }
+
+      document.getElementById('step-ballot').style.display = 'none';
+      document.getElementById('done-msg').textContent = data.message;
+      document.getElementById('step-done').style.display = 'block';
+      document.getElementById('msg-area').innerHTML = '';
+    } catch (e) {
+      showMsg('Network error contacting the server.', 'error');
+    }
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,7 @@
+[
+  { "voterId": "voter-001", "pin": "1234" },
+  { "voterId": "voter-002", "pin": "2345" },
+  { "voterId": "voter-003", "pin": "3456" },
+  { "voterId": "voter-004", "pin": "4567" },
+  { "voterId": "voter-005", "pin": "5678" }
+]

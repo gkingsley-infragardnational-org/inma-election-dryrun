@@ -1,0 +1,45 @@
+Copy-paste these 5 entries into the Cloudflare KV dashboard, one at a time
+(Part C of DEPLOY_GUIDE.md). For each: paste the Key, paste the Value, click Save/Add.
+These are synthetic test voters only — not real people.
+
+--------------------------------------------------
+Key:
+voter:voter-001
+
+Value:
+{"pinHash":"03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4","failedAttempts":0,"locked":false,"hasVoted":false}
+
+(PIN for this voter: 1234)
+--------------------------------------------------
+Key:
+voter:voter-002
+
+Value:
+{"pinHash":"38083c7ee9121e17401883566a148aa5c2e2d55dc53bc4a94a026517dbff3c6b","failedAttempts":0,"locked":false,"hasVoted":false}
+
+(PIN for this voter: 2345)
+--------------------------------------------------
+Key:
+voter:voter-003
+
+Value:
+{"pinHash":"ceaa28bba4caba687dc31b1bbe79eca3c70c33f871f1ce8f528cf9ab5cfd76dd","failedAttempts":0,"locked":false,"hasVoted":false}
+
+(PIN for this voter: 3456)
+--------------------------------------------------
+Key:
+voter:voter-004
+
+Value:
+{"pinHash":"db2e7f1bd5ab9968ae76199b7cc74795ca7404d5a08d78567715ce532f9d2669","failedAttempts":0,"locked":false,"hasVoted":false}
+
+(PIN for this voter: 4567)
+--------------------------------------------------
+Key:
+voter:voter-005
+
+Value:
+{"pinHash":"f8638b979b2f4f793ddb6dbd197e0ee25a7a6ea32b0ae22f5e3c5d119d839e75","failedAttempts":0,"locked":false,"hasVoted":false}
+
+(PIN for this voter: 5678)
+--------------------------------------------------

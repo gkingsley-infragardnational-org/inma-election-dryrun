@@ -1,0 +1,13 @@
+{
+  "name": "inma-election-dryrun",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "wrangler pages dev public --kv VOTES",
+    "seed:local": "node seed/seed.js --local",
+    "deploy": "wrangler pages deploy public"
+  },
+  "devDependencies": {
+    "wrangler": "^3.90.0"
+  }
+}
