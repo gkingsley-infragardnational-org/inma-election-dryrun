@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Election Admin Console — INMA</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root {
+    --navy: #0b1f3a;
+    --navy-alt: #13294e;
+    --navy-card: #16305a;
+    --gold: #f2c94c;
+    --gold-bright: #ffd700;
+    --white: #ffffff;
+    --gray-light: #d7dee8;
+    --border: #2c4874;
+    --error-bg: #ffffff;
+    --error-text: #7a1c17;
+    --error-border: #c0392b;
+    --ok-bg: #ffffff;
+    --ok-text: #14532d;
+    --ok-border: #2e7d32;
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family:-apple-system,"Segoe UI",Arial,sans-serif; background:var(--navy); color:var(--white); }
+  .wrap { max-width: 900px; margin: 0 auto; padding: 24px 16px 64px; }
+  h1 { color: var(--gold-bright); font-size: 1.4rem; }
+  h2 { color: var(--gold-bright); font-size: 1.1rem; border-bottom: 1px solid var(--border); padding-bottom: 6px; margin-top: 36px; }
+  .banner { background: var(--navy-card); border: 1px solid var(--border); border-left: 4px solid var(--gold); padding: 10px 14px; border-radius: 6px; font-size: 0.88rem; color: var(--gray-light); }
+  fieldset { border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin: 16px 0; }
+  legend { color: var(--gold); font-weight: 600; padding: 0 8px; }
+  label { display:block; margin: 10px 0 4px; font-weight:600; color: var(--gray-light); font-size:0.9rem; }
+  input[type=text], input[type=password], input[type=number], input[type=file], textarea {
+    width: 100%; max-width: 480px; padding: 8px; font-size: 0.95rem; border-radius:6px; border:1px solid var(--border); background:var(--white); color:#101010; font-family:inherit;
+  }
+  textarea { min-height: 70px; }
+  button { margin-top: 12px; padding: 9px 16px; font-size:0.95rem; font-weight:700; cursor:pointer; background:var(--gold); color:var(--navy); border:none; border-radius:6px; }
+  button:hover { background: var(--gold-bright); }
+  button.danger { background:#c0392b; color:#fff; }
+  button.danger:hover { background:#e74c3c; }
+  table { border-collapse:collapse; width:100%; margin-top:12px; font-size:0.88rem; }
+  th, td { border:1px solid var(--border); padding:8px 10px; text-align:left; }
+  th { background:var(--navy-alt); color:var(--gold); }
+  td { background:var(--navy-card); }
+  .msg { margin-top:12px; padding:10px 12px; border-radius:6px; font-size:0.9rem; font-weight:600; }
+  .msg.error { background:var(--error-bg); color:var(--error-text); border:2px solid var(--error-border); }
+  .msg.ok { background:var(--ok-bg); color:var(--ok-text); border:2px solid var(--ok-border); }
+  .locked-panel { opacity: 0.4; pointer-events: none; }
+  a.top-link { color: var(--gold-bright); }
+  .small { font-size:0.8rem; color:var(--gray-light); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Election Admin Console</h1>
+  <div class="banner">Manage candidates, upload the voter roster, adjust settings, and reset test votes. All actions here require the admin key. See also: <a class="top-link" href="/admin">Live Tally</a>.</div>
+
+  <fieldset>
+    <legend>Unlock</legend>
+    <label for="admin-key">Admin key</label>
+    <input type="password" id="admin-key" autocomplete="off" />
+    <div><button id="btn-unlock">Unlock console</button></div>
+    <div id="unlock-msg"></div>
+  </fieldset>
+
+  <div id="panels" class="locked-panel">
+
+    <h2>Election Settings</h2>
+    <fieldset>
+      <legend>Basics</legend>
+      <label for="s-name">Election name (shown to voters)</label>
+      <input type="text" id="s-name" placeholder="e.g. INMA 2026 Board Election" />
+      <label for="s-electionid">Election ID (internal, for audit exports)</label>
+      <input type="text" id="s-electionid" placeholder="e.g. INMA-BOARD-2026-08" />
+      <label for="s-maxsel">Max selections per ballot (number of open seats)</label>
+      <input type="number" id="s-maxsel" min="1" value="1" style="max-width:120px" />
+      <div><button id="btn-save-settings">Save settings</button></div>
+      <div id="settings-msg"></div>
+    </fieldset>
+
+    <h2>Candidates</h2>
+    <fieldset>
+      <legend>Add a candidate</legend>
+      <label for="c-name">Full name</label>
+      <input type="text" id="c-name" />
+      <label for="c-ima">IMA / Chapter</label>
+      <input type="text" id="c-ima" placeholder="e.g. Boston" />
+      <label for="c-bio">Bio</label>
+      <textarea id="c-bio"></textarea>
+      <label for="c-photo">Photo (optional)</label>
+      <input type="file" id="c-photo" accept="image/*" />
+      <div><button id="btn-add-candidate">Add candidate</button></div>
+      <div id="candidate-msg"></div>
+    </fieldset>
+    <div id="candidate-list"></div>
+
+    <h2>Voter Roster</h2>
+    <fieldset>
+      <legend>Upload voters (CSV or XLSX)</legend>
+      <p class="small">File needs a column called <strong>email</strong>. If it also has a <strong>pin</strong> column, those PINs are used as-is; otherwise a secure 6-digit PIN is generated automatically per voter.</p>
+      <input type="file" id="voter-file" accept=".csv,.xlsx,.xls" />
+      <div><button id="btn-upload-voters">Upload roster</button></div>
+      <div id="voters-msg"></div>
+      <div id="voters-result"></div>
+    </fieldset>
+
+    <h2>Reset Test Votes</h2>
+    <fieldset>
+      <legend>Danger zone</legend>
+      <p class="small">Clears every cast ballot and returns all voters to "not yet voted" so you can test the whole flow repeatedly without affecting the official count. Voter PINs are kept. This cannot be undone.</p>
+      <label for="reset-confirm">Type RESET to confirm</label>
+      <input type="text" id="reset-confirm" style="max-width:160px" />
+      <div><button class="danger" id="btn-reset">Reset all test votes</button></div>
+      <div id="reset-msg"></div>
+    </fieldset>
+
+  </div>
+</div>
+
+<script>
+  let adminKey = sessionStorage.getItem('adminKey') || '';
+  if (adminKey) document.getElementById('admin-key').value = adminKey;
+
+  function showMsg(elId, text, type) {
+    const el = document.getElementById(elId);
+    el.innerHTML = text ? `<div class="msg ${type}">${text.replace(/[<>&]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]))}</div>` : '';
+  }
+
+  async function api(path, opts = {}) {
+    const res = await fetch(path, {
+      ...opts,
+      headers: { ...(opts.headers || {}), 'X-Admin-Key': adminKey },
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
+    return data;
+  }
+
+  async function unlock() {
+    adminKey = document.getElementById('admin-key').value.trim();
+    if (!adminKey) { showMsg('unlock-msg', 'Enter the admin key.', 'error'); return; }
+    try {
+      await api('/api/admin/list-candidates');
+      sessionStorage.setItem('adminKey', adminKey);
+      document.getElementById('panels').classList.remove('locked-panel');
+      showMsg('unlock-msg', 'Unlocked.', 'ok');
+      loadSettings();
+      loadCandidates();
+    } catch (e) {
+      showMsg('unlock-msg', 'Incorrect admin key.', 'error');
+    }
+  }
+  document.getElementById('btn-unlock').addEventListener('click', unlock);
+
+  async function loadSettings() {
+    try {
+      const s = await api('/api/admin/settings');
+      document.getElementById('s-name').value = s.name || '';
+      document.getElementById('s-electionid').value = s.electionId || '';
+      document.getElementById('s-maxsel').value = s.maxSelections || 1;
+    } catch (e) { showMsg('settings-msg', e.message, 'error'); }
+  }
+
+  document.getElementById('btn-save-settings').addEventListener('click', async () => {
+    try {
+      await api('/api/admin/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: document.getElementById('s-name').value,
+          electionId: document.getElementById('s-electionid').value,
+          maxSelections: parseInt(document.getElementById('s-maxsel').value, 10),
+        }),
+      });
+      showMsg('settings-msg', 'Settings saved.', 'ok');
+    } catch (e) { showMsg('settings-msg', e.message, 'error'); }
+  });
+
+  function resizeImage(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const maxW = 400;
+          const scale = Math.min(1, maxW / img.width);
+          const canvas = document.createElement('canvas');
+          canvas.width = img.width * scale;
+          canvas.height = img.height * scale;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          resolve(canvas.toDataURL('image/jpeg', 0.8));
+        };
+        img.onerror = reject;
+        img.src = e.target.result;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function loadCandidates() {
+    try {
+      const data = await api('/api/admin/list-candidates');
+      const list = document.getElementById('candidate-list');
+      if (!data.candidates.length) {
+        list.innerHTML = '<p class="small">No candidates added yet.</p>';
+        return;
+      }
+      list.innerHTML = `
+        <table>
+          <thead><tr><th>Photo</th><th>Name</th><th>IMA</th><th>Bio</th><th></th></tr></thead>
+          <tbody>
+            ${data.candidates.map(c => `
+              <tr>
+                <td>${c.photo ? `<img src="${c.photo}" alt="" style="width:48px;height:48px;object-fit:cover;border-radius:4px;">` : '—'}</td>
+                <td>${c.name}</td>
+                <td>${c.ima || '—'}</td>
+                <td>${(c.bio || '').slice(0, 80)}${c.bio && c.bio.length > 80 ? '…' : ''}</td>
+                <td><button class="danger" data-id="${c.id}" data-action="delete-candidate">Delete</button></td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+      list.querySelectorAll('[data-action="delete-candidate"]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          if (!confirm('Delete this candidate?')) return;
+          try {
+            await api('/api/admin/delete-candidate', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ id: btn.dataset.id }),
+            });
+            loadCandidates();
+          } catch (e) { showMsg('candidate-msg', e.message, 'error'); }
+        });
+      });
+    } catch (e) { showMsg('candidate-msg', e.message, 'error'); }
+  }
+
+  document.getElementById('btn-add-candidate').addEventListener('click', async () => {
+    const name = document.getElementById('c-name').value.trim();
+    const ima = document.getElementById('c-ima').value.trim();
+    const bio = document.getElementById('c-bio').value.trim();
+    const photoFile = document.getElementById('c-photo').files[0];
+    if (!name) { showMsg('candidate-msg', 'Name is required.', 'error'); return; }
+    try {
+      let photo = null;
+      if (photoFile) photo = await resizeImage(photoFile);
+      await api('/api/admin/add-candidate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, ima, bio, photo }),
+      });
+      document.getElementById('c-name').value = '';
+      document.getElementById('c-ima').value = '';
+      document.getElementById('c-bio').value = '';
+      document.getElementById('c-photo').value = '';
+      showMsg('candidate-msg', 'Candidate added.', 'ok');
+      loadCandidates();
+    } catch (e) { showMsg('candidate-msg', e.message, 'error'); }
+  });
+
+  function parseFile(file) {
+    return new Promise((resolve, reject) => {
+      const name = file.name.toLowerCase();
+      if (name.endsWith('.csv')) {
+        Papa.parse(file, {
+          header: true,
+          skipEmptyLines: true,
+          complete: (res) => resolve(res.data),
+          error: reject,
+        });
+      } else {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const wb = XLSX.read(e.target.result, { type: 'array' });
+          const sheet = wb.Sheets[wb.SheetNames[0]];
+          resolve(XLSX.utils.sheet_to_json(sheet));
+        };
+        reader.onerror = reject;
+        reader.readAsArrayBuffer(file);
+      }
+    });
+  }
+
+  document.getElementById('btn-upload-voters').addEventListener('click', async () => {
+    const file = document.getElementById('voter-file').files[0];
+    if (!file) { showMsg('voters-msg', 'Choose a CSV or XLSX file first.', 'error'); return; }
+    try {
+      const rows = await parseFile(file);
+      const voters = rows.map(r => {
+        const emailKey = Object.keys(r).find(k => k.trim().toLowerCase() === 'email');
+        const pinKey = Object.keys(r).find(k => k.trim().toLowerCase() === 'pin');
+        return { email: emailKey ? r[emailKey] : '', pin: pinKey ? r[pinKey] : undefined };
+      }).filter(v => v.email);
+
+      if (voters.length === 0) { showMsg('voters-msg', 'No valid rows found — check for an "email" column.', 'error'); return; }
+
+      const data = await api('/api/admin/upload-voters', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ voters }),
+      });
+
+      showMsg('voters-msg', `Loaded ${data.count} voter(s).${data.skipped.length ? ' Skipped: ' + data.skipped.join(', ') : ''}`, 'ok');
+
+      const csvContent = 'email,pin\n' + data.voters.map(v => `${v.email},${v.pin}`).join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      document.getElementById('voters-result').innerHTML = `
+        <table>
+          <thead><tr><th>Email</th><th>PIN</th></tr></thead>
+          <tbody>${data.voters.map(v => `<tr><td>${v.email}</td><td>${v.pin}</td></tr>`).join('')}</tbody>
+        </table>
+        <p><a class="top-link" href="${url}" download="voter-pins.csv">Download this list as CSV</a> — distribute these PINs to each voter yourself (email isn't sent automatically).</p>
+      `;
+    } catch (e) { showMsg('voters-msg', e.message, 'error'); }
+  });
+
+  document.getElementById('btn-reset').addEventListener('click', async () => {
+    const confirmText = document.getElementById('reset-confirm').value.trim();
+    if (confirmText !== 'RESET') { showMsg('reset-msg', 'Type RESET exactly (all caps) to confirm.', 'error'); return; }
+    try {
+      const data = await api('/api/admin/reset-votes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ confirm: 'RESET' }),
+      });
+      showMsg('reset-msg', `Cleared ${data.ballotsDeleted} ballot(s), reset ${data.votersReset} voter(s).`, 'ok');
+      document.getElementById('reset-confirm').value = '';
+    } catch (e) { showMsg('reset-msg', e.message, 'error'); }
+  });
+
+  if (adminKey) unlock();
+</script>
+</body>
+</html>
