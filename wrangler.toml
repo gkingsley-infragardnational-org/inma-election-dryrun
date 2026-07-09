@@ -2,12 +2,7 @@ name = "inma-election-dryrun"
 compatibility_date = "2024-09-23"
 pages_build_output_dir = "public"
 
-# No KV namespace or secret is declared here on purpose.
-# For the GitHub + Cloudflare dashboard deploy path, both the VOTES KV
-# binding and the ADMIN_KEY secret are configured entirely through the
-# Cloudflare Pages dashboard (Settings > Bindings, and Settings >
-# Variables and Secrets) — see DEPLOY_GUIDE.md in this folder.
-#
-# (If you ever deploy via the Wrangler CLI instead, you would add a
-# [[kv_namespaces]] block here with real ids from
-# `wrangler kv namespace create VOTES`.)
+[[kv_namespaces]]
+binding = "VOTES"
+id = "8ed043e3095a464595f17e6577be5c0e"
+preview_id = "8ed043e3095a464595f17e6577be5c0e"
