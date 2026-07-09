@@ -1,8 +1,8 @@
-import { ELECTION } from "../_shared/election.js";
+import { getSettings, listCandidates } from "../_shared/store.js";
 
 // Admin-only live tally: aggregates cast ballots into per-candidate counts.
 // Still never touches voter identity — reads only the unlinkable ballot:*
-// records. Protect with: wrangler pages secret put ADMIN_KEY
+// records. Protect with: an ADMIN_KEY secret set in the Cloudflare dashboard.
 export async function onRequestGet(context) {
   const { request, env } = context;
   const adminKey = request.headers.get("X-Admin-Key");
@@ -14,7 +14,9 @@ export async function onRequestGet(context) {
     });
   }
 
-  const counts = Object.fromEntries(ELECTION.candidates.map((c) => [c.id, 0]));
+  const settings = await getSettings(env);
+  const candidates = await listCandidates(env);
+  const counts = Object.fromEntries(candidates.map((c) => [c.id, 0]));
   let totalBallots = 0;
 
   let cursor;
@@ -33,15 +35,15 @@ export async function onRequestGet(context) {
     if (list.list_complete) break;
   } while (cursor);
 
-  const results = ELECTION.candidates
-    .map((c) => ({ id: c.id, name: c.name, votes: counts[c.id] }))
+  const results = candidates
+    .map((c) => ({ id: c.id, name: c.name, ima: c.ima, votes: counts[c.id] }))
     .sort((a, b) => b.votes - a.votes);
 
   return new Response(
     JSON.stringify({
-      electionId: ELECTION.electionId,
-      electionName: ELECTION.name,
-      maxSelections: ELECTION.maxSelections,
+      electionId: settings.electionId,
+      electionName: settings.name,
+      maxSelections: settings.maxSelections,
       totalBallotsCast: totalBallots,
       results,
       asOf: new Date().toISOString(),
