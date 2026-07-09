@@ -5,22 +5,40 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Election Admin — Live Tally</title>
 <style>
-  body { font-family: -apple-system, Segoe UI, Arial, sans-serif; max-width: 640px; margin: 40px auto; padding: 0 16px; color: #1a1a1a; }
-  .banner { background: #fff3cd; border: 1px solid #ffe69c; padding: 10px 14px; border-radius: 6px; margin-bottom: 20px; font-size: 0.9rem; }
-  input[type=password] { padding: 8px; font-size: 1rem; width: 260px; }
-  button { padding: 8px 14px; font-size: 0.95rem; cursor: pointer; margin-left: 8px; }
+  :root {
+    --navy: #0b1f3a;
+    --navy-alt: #13294e;
+    --navy-card: #16305a;
+    --gold: #f2c94c;
+    --gold-bright: #ffd700;
+    --white: #ffffff;
+    --gray-light: #d7dee8;
+    --border: #2c4874;
+    --error-bg: #ffffff;
+    --error-text: #7a1c17;
+    --error-border: #c0392b;
+  }
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, Segoe UI, Arial, sans-serif; max-width: 720px; margin: 0 auto; padding: 24px 16px 64px; background: var(--navy); color: var(--white); }
+  h1 { color: var(--gold-bright); font-size: 1.4rem; }
+  a { color: var(--gold-bright); }
+  .banner { background: var(--navy-card); border: 1px solid var(--border); border-left: 4px solid var(--gold); padding: 10px 14px; border-radius: 6px; margin-bottom: 20px; font-size: 0.9rem; color: var(--gray-light); }
+  input[type=password] { padding: 8px; font-size: 1rem; width: 260px; border-radius:6px; border:1px solid var(--border); }
+  button { padding: 8px 14px; font-size: 0.95rem; font-weight:700; cursor: pointer; margin-left: 8px; background: var(--gold); color: var(--navy); border:none; border-radius:6px; }
+  button:hover { background: var(--gold-bright); }
   table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid #e5e5e5; }
-  th { background: #f7f7f7; }
-  .bar { height: 8px; background: #2563eb; border-radius: 4px; }
-  .meta { color: #555; font-size: 0.85rem; margin-top: 10px; }
-  .err { color: #7a1c17; margin-top: 10px; }
-  label { font-weight: 600; font-size: 0.9rem; }
+  th, td { text-align: left; padding: 8px 10px; border: 1px solid var(--border); }
+  th { background: var(--navy-alt); color: var(--gold); }
+  td { background: var(--navy-card); }
+  .bar { height: 8px; background: var(--gold); border-radius: 4px; }
+  .meta { color: var(--gray-light); font-size: 0.85rem; margin-top: 10px; }
+  .err { background:#fff; color: #7a1c17; border: 2px solid var(--error-border); padding: 10px 12px; border-radius: 6px; margin-top: 10px; font-weight:600; }
+  label { font-weight: 600; font-size: 0.9rem; color: var(--gray-light); }
 </style>
 </head>
 <body>
   <h1>Election Admin — Live Tally</h1>
-  <div class="banner">Read-only results view. Requires the admin key set via <code>wrangler pages secret put ADMIN_KEY</code>.</div>
+  <div class="banner">Read-only results view. Requires the admin key set in the Cloudflare dashboard. Need to manage candidates, upload voters, or reset test votes? Go to the <a href="/admin-console">Admin Console</a>.</div>
 
   <label for="key">Admin key</label><br/>
   <input type="password" id="key" autocomplete="off" />
@@ -67,20 +85,20 @@
     const max = Math.max(1, ...tally.results.map(r => r.votes));
     const rows = tally.results.map(r => `
       <tr>
-        <td>${r.name}</td>
+        <td>${r.name}${r.ima ? ` <span style="color:var(--gray-light)">(${r.ima})</span>` : ''}</td>
         <td>${r.votes}</td>
         <td style="width:40%"><div class="bar" style="width:${(r.votes / max) * 100}%"></div></td>
       </tr>`).join('');
 
     out.innerHTML = `
-      <h2 style="margin-top:24px;">${tally.electionName}</h2>
+      <h2 style="margin-top:24px;color:var(--gold-bright);">${tally.electionName}</h2>
       <table>
         <thead><tr><th>Candidate</th><th>Votes</th><th></th></tr></thead>
         <tbody>${rows}</tbody>
       </table>
       <div class="meta">
         Ballots cast: ${tally.totalBallotsCast}${turnoutCount !== null ? ` · Voters recorded as turned out: ${turnoutCount}` : ''}
-        ${turnoutCount !== null && turnoutCount !== tally.totalBallotsCast ? '<br/><strong style="color:#b45309">Reconciliation mismatch — ballot count and turnout count differ. Investigate before certifying.</strong>' : ''}
+        ${turnoutCount !== null && turnoutCount !== tally.totalBallotsCast ? '<br/><strong style="color:#e0a030">Reconciliation mismatch — ballot count and turnout count differ. Investigate before certifying.</strong>' : ''}
         <br/>Max selections per ballot: ${tally.maxSelections} · As of: ${new Date(tally.asOf).toLocaleString()}
       </div>`;
   }
