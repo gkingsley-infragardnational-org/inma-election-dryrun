@@ -1,8 +1,7 @@
-import { ELECTION } from "../_shared/election.js";
+import { getSettings } from "../_shared/store.js";
 
 // Admin-only CSV export of cast ballots (selections + timestamp only —
-// no voter identity, by design). Protect with a secret set via:
-//   wrangler pages secret put ADMIN_KEY
+// no voter identity, by design).
 export async function onRequestGet(context) {
   const { request, env } = context;
   const adminKey = request.headers.get("X-Admin-Key");
@@ -11,6 +10,7 @@ export async function onRequestGet(context) {
     return new Response("Unauthorized", { status: 401 });
   }
 
+  const settings = await getSettings(env);
   const ballots = [];
   let cursor;
   do {
@@ -31,7 +31,7 @@ export async function onRequestGet(context) {
   return new Response(header + rows + "\n", {
     headers: {
       "Content-Type": "text/csv",
-      "Content-Disposition": `attachment; filename="${ELECTION.electionId}-ballots.csv"`,
+      "Content-Disposition": `attachment; filename="${settings.electionId}-ballots.csv"`,
     },
   });
 }
